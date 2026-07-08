@@ -1,25 +1,41 @@
 from sqlalchemy.orm import Session
-from profile import Profile
-from models import User
-from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
+from profile import Profile, User, UserCreate, CreatePost
+from models import User, Post
+from authenticated import get_hash, check_password
 
 
-def user_create(user:Profile, db:Session):
-    table__user = User(name=user.name,country=user.country,city=user.city)
+def user_create(user:UserCreate, db:Session):
+    hash_password = get_hash(user.password)
     
-    db.add(table__user)
-    db.commit()
-    db.refresh(table__user)
+    table__user = User(name=user.name,country=user.country,city=user.city,email=user.email,password=hash_password)
 
-    return table__user
+    try:
+
+        db.add(table__user)
+        db.commit()
+        db.refresh(table__user)
+
+        return table__user
+
+    except IntegrityError:
+        db.rollback()
+
+        return None
 
 
-def catch_user(db:Session, username:str):
-    user = db.query(User).filter(User.name == username).first()
-    if(user):
-        return user
-    else:
-       raise HTTPException(status_code=404, detail="Usernot Found")
+def login(db:Session, user:User):
+    get_user = db.query(User).filter(User.email == user.email).first()
+    
+
+    if get_user is None:
+        return None
+    is_hash_valid = check_password(hashed=get_user.password,password=user.password)
+    
+    if(is_hash_valid):
+        return get_user
+    
+    return None
 
 
 def change_user(db:Session, user:Profile,username:str):
@@ -36,6 +52,22 @@ def change_user(db:Session, user:Profile,username:str):
     db.refresh(user_search)
 
     return user_search
+
+
+def create_post(post:CreatePost, db:Session):
+    created_post = Post(title = post.title, description = post.description, user_id= post.user_id)
+
+    try:
+        db.add(created_post)
+        db.commit()
+        db.refresh(created_post)
+
+        return created_post
+
+    except IntegrityError:
+        db.rollback()
+
+        return None
 
 def delete_user(db:Session, username:str):
     user_search = db.query(User).filter(User.name == username).first()

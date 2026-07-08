@@ -62,7 +62,9 @@ def test_create_profile(client):
     payload = {
         "name": "Anthony",
         "country": "Brazil",
-        "city": "Sao Paulo"
+        "city": "Sao Paulo",
+        "email":"anthony@stark.com",
+        "password":"Abc1234"
     }
     response = client.post("/create-profile", json=payload)
     
@@ -71,14 +73,82 @@ def test_create_profile(client):
     
     assert response.status_code == 200
 
-def test_alter_user_not_found(client):
-    payload={
-        "name":"New Name",
-        "country":"Brazil",
-        "city":"Santos"
+
+def test_create_profile_blank_field(client):
+    payload_without_name = {
+        "name":"",
+        "country":"UK",
+        "city":"London",
+        "email":"george@test.com",
+        "password":"Abc1234"
     }
 
-    response = client.put("/user-change/ghost_user",json=payload)
+    response = client.post("/create-profile", json=payload_without_name)
 
-    assert response.status_code == 404
-    assert response.json()["detail"] == "User not Found"
+    assert response.status_code == 422
+
+    payload_without_city = {
+        "name":"George",
+        "country":"UK",
+        "city":"",
+        "email":"george@test.com",
+        "password":"Abc1234"
+    }
+
+    response = client.post("/create-profile", json=payload_without_city)
+
+    assert response.status_code == 422
+
+    payload_without_email = {
+        "name":"George",
+        "country":"UK",
+        "city":"London",
+        "email":"",
+        "password":"Abc1234"
+    }
+
+    response = client.post("/create-profile", json=payload_without_email)
+
+    assert response.status_code == 422
+
+    payload_without_password = {
+        "name":"George",
+        "country":"UK",
+        "city":"London",
+        "email":"george@test.com",
+        "password":""
+    }
+
+    response = client.post("/create-profile", json=payload_without_password)
+
+    assert response.status_code == 422
+
+    payload_without_country = {
+        "name":"George",
+        "country":"",
+        "city":"London",
+        "email":"george@test.com",
+        "password":"Abc1234"
+    }
+
+    response = client.post('/create-profile', json = payload_without_country)
+
+    assert response.json()['country'] == 'UK'
+
+    assert response.status_code == 200
+
+
+
+def test_create_profile_email_already_exist(client):
+    payload = {
+        "name": "Anthony",
+        "country": "Brazil",
+        "city": "Sao Paulo",
+        "email":"anthony@stark.com",
+        "password":"Abc1234"
+    }
+    client.post("/create-profile", json=payload)
+
+    response = client.post("/create-profile",json=payload)
+
+    assert response.status_code == 400
