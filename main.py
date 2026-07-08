@@ -1,7 +1,7 @@
 from fastapi import FastAPI,Depends,HTTPException
 from profile import Profile, User, UserCreate, CreatePost, Post
 from sqlalchemy.orm import Session
-from crud import user_create, login, change_user, delete_user, create_post
+from crud import user_create, login, change_user, delete_user, create_post, return_all_posts,get_user_post
 from db import engine, SessionLocal,Base
 from typing import List
 
@@ -18,9 +18,21 @@ def dep_db():
     
 
 
-@app.get('/')
-def init():
-    return {"Hello":"World"}
+@app.get('/',response_model=List[Post])
+def index(db:Session = Depends(dep_db)):
+    
+    return return_all_posts(db=db)
+
+@app.get('/get-post/{user_id}', response_model=List[Post])
+def user_post(user_id:int, db:Session = Depends(dep_db)):
+
+    user_post = get_user_post(user_id=user_id, db=db)
+
+    if user_post is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    return user_post
+   
 
 @app.post('/create-profile', response_model=Profile)
 def create_profile(user:UserCreate,db:Session = Depends(dep_db)):

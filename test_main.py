@@ -1,3 +1,5 @@
+from typing import List
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine,StaticPool
@@ -50,12 +52,12 @@ def client(db_session):
 
 ## ─── THE TESTS ────────────────────────────────────────────────────────
 
-def test_read_root(client):
-    """Test the basic landing endpoint"""
+def test_return_all_posts(client):
+  
     response = client.get("/")
     
     assert response.status_code == 200
-    assert response.json() == {"Hello": "World"}
+    assert isinstance(response.json(), List)
 
 def test_create_profile(client):
     """Test creating a brand new profile"""
@@ -237,3 +239,45 @@ def test_create_post_with_id_no_exist(client):
     assert response.status_code == 422
    
     
+def test_get_user_post(client):
+    user = {
+        "name": "Anthony",
+        "country": "Brazil",
+        "city": "Sao Paulo",
+        "email":"anthony@stark.com",
+        "password":"Abc1234"
+    }
+
+    response_user = client.post("/create-profile", json=user)
+    user_id = response_user.json()['id']
+
+    post = {
+        "title":"Stark Industry",
+        "description":"Come work for Starks Industries.",
+        "user_id":user_id,
+    }
+    
+    client.post("/create-post", json=post)
+
+    response = client.get(f"/get-post/{user_id}")
+
+    assert response.status_code == 200
+    assert isinstance(response.json(), List)
+
+def test_get_user_not_have_post(client):
+    user = {
+        "name": "Anthony",
+        "country": "Brazil",
+        "city": "Sao Paulo",
+        "email":"anthony@stark.com",
+        "password":"Abc1234"
+    }
+
+    client.post("/create-profile", json=user)
+
+    id_not_exist = 999
+
+    response = client.get(f"/get-post/{id_not_exist}")
+
+    assert response.status_code == 404
+    assert response.json().get("detail") == "Post not found"

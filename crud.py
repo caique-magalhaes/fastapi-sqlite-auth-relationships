@@ -5,6 +5,19 @@ from models import User, Post
 from authenticated import get_hash, check_password
 
 
+def return_all_posts(db:Session):
+    
+    posts = db.query(Post).all()
+
+    return posts
+
+def get_user_post(user_id:int, db:Session):
+    posts = db.query(Post).filter(Post.user_id == user_id).all()
+
+    if not posts:
+        return None
+    return posts
+
 def user_create(user:UserCreate, db:Session):
     hash_password = get_hash(user.password)
     
