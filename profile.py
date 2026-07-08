@@ -33,6 +33,7 @@ class UserCreate(User):
     city:str
 
 class Profile(BaseModel):
+    id:int
     name:str
     country:str
     city:str

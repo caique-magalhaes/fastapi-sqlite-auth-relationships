@@ -152,3 +152,88 @@ def test_create_profile_email_already_exist(client):
     response = client.post("/create-profile",json=payload)
 
     assert response.status_code == 400
+
+
+def test_create_post(client):
+    user = {
+        "name": "Pepper Potts",
+        "country": "US",
+        "city": "Malibu",
+        "email": "pepper@stark.com",
+        "password": "RescuePassword"
+    }
+
+    
+    user_response = client.post("/create-profile",json=user)
+
+    user_id = user_response.json()['id']
+
+    payload = {
+        "title":"Stark Industry",
+        "description":"Come work for Starks Industries.",
+        "user_id":user_id,
+
+    }
+
+    response = client.post("/create-post", json=payload)
+
+    assert response.status_code == 200
+
+
+def test_create_post_with_blank_field(client):
+    user = {
+    "name": "Pepper Potts",
+    "country": "US",
+    "city": "Malibu",
+    "email": "pepper@stark.com",
+    "password": "RescuePassword"
+}   
+    user_response = client.post("/create-profile",json=user)
+    user_id = user_response.json()['id']
+
+    post_without_title = {
+        "title":"   ",
+        "description":"Come work for Starks Industries.",
+        "user_id":user_id,
+
+    }
+
+    response = client.post("/create-post", json=post_without_title)
+
+    assert response.status_code == 422
+
+    post_without_descritpion = {
+        "title":"Stark Industry",
+        "description":"  ",
+        "user_id":user_id,
+    }
+
+    response = client.post("/create-post", json=post_without_descritpion)
+
+    assert response.status_code == 422
+
+
+
+def test_create_post_with_id_no_exist(client):
+    
+    post_user_id_not_exist = {
+        "title":"Stark Industry",
+        "description":"Come work for Starks Industries.",
+        "user_id":2,
+    }
+
+    response = client.post("/create-post", json=post_user_id_not_exist)
+
+    assert response.status_code == 422
+
+    post_with_user_id_string = {
+        "title":"Stark Industry",
+        "description":"Come work for Starks Industries.",
+        "user_id":"ok",
+    }
+
+    response = client.post("/create-post", json=post_with_user_id_string)
+
+    assert response.status_code == 422
+   
+    
