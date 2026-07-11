@@ -51,21 +51,30 @@ def login(db:Session, user:UserLogin):
     return None
 
 
-def change_user(db:Session, user:Profile,username:str):
-    user_search = db.query(User).filter(User.name == username).first()
+def change_post(post_id:int ,new_post:CreatePost, email:str,db:Session):
+    user_search = db.query(User).filter(User.email == email).first()
     
-    if(user_search is None):
+    upload_post = db.query(Post).filter(Post.id == post_id).first()
+
+    if upload_post is None:
         return None
 
-    user_search.name = user.name
-    user_search.country = user.country
-    user_search.city = user.city
+    if user_search.id != upload_post.user_id:
+        return "not authorized"
+
+    upload_post.title = new_post.title
+    upload_post.description = new_post.description
     
-    db.commit()
-    db.refresh(user_search)
+    try:
+        db.commit()
+        db.refresh(upload_post)
 
-    return user_search
+        return upload_post
+    
+    except IntegrityError:
+        db.rollback()
 
+        return None
 
 def create_post(post:CreatePost, db:Session, user_id:int):
     created_post = Post(title = post.title, description = post.description, user_id = user_id)

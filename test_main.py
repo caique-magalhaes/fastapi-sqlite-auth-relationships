@@ -50,24 +50,31 @@ def client(db_session):
 
 @pytest.fixture(scope='function')
 def test_user_credentials():
-    standard_user = {
+    standard_user = [{
         "name": "Anthony",
         "country": "Brazil",
         "city": "Sao Paulo",
         "email":"anthony@stark.com",
         "password":"Abc1234"
+    },
+    {
+        "name": "Victor Von Doom",
+        "country": "Latveria",
+        "city": "Doomstadt",
+        "email":"victor@stark.com",
+        "password":"Abc1234"
     }
-    
+    ]
     return standard_user
 
 
 @pytest.fixture(scope='function')
 def generate_token(client,test_user_credentials):
-    response = client.post("/create-profile", json=test_user_credentials)
+    response = client.post("/create-profile", json=test_user_credentials[0])
 
     user_info = {
-        "username":test_user_credentials['email'],
-        "password":test_user_credentials['password']
+        "username":test_user_credentials[0]['email'],
+        "password":test_user_credentials[0]['password']
     }
 
     response = client.post('/user/login/token', data=user_info)
@@ -75,8 +82,19 @@ def generate_token(client,test_user_credentials):
     
     return json_data.get('access_token')
 
+@pytest.fixture(scope='function')
+def generate_second_token(client, test_user_credentials):
+    response = client.post("/create-profile", json=test_user_credentials[1])
 
+    user_info = {
+        "username":test_user_credentials[1]['email'],
+        "password":test_user_credentials[1]['password']
+    }
 
+    response = client.post('/user/login/token', data=user_info)
+    json_data = response.json()
+    
+    return json_data.get('access_token')
 
 ## ─── THE TESTS ────────────────────────────────────────────────────────
 
@@ -90,7 +108,7 @@ def test_return_all_posts(client):
 def test_create_profile(client,test_user_credentials):
     """Test creating a brand new profile"""
     
-    response = client.post("/create-profile", json=test_user_credentials)
+    response = client.post("/create-profile", json=test_user_credentials[0])
     
     # Debugging print statement: if it fails, pytest will show us exactly what the server responded with!
     print("SERVER RESPONSE:", response.json()) 
@@ -101,11 +119,11 @@ def test_create_profile(client,test_user_credentials):
 def test_login_for_access_token(client, test_user_credentials):
     """Check if it is returning the token in the response."""
 
-    response = client.post("/create-profile", json=test_user_credentials)
+    response = client.post("/create-profile", json=test_user_credentials[0])
 
     user_info = {
-        "username":test_user_credentials['email'],
-        "password":test_user_credentials['password']
+        "username":test_user_credentials[0]['email'],
+        "password":test_user_credentials[0]['password']
     }
 
     response = client.post('/user/login/token', data=user_info)
@@ -187,9 +205,9 @@ def test_create_profile_blank_field(client):
 
 def test_create_profile_email_already_exist(client, test_user_credentials):
     
-    client.post("/create-profile", json=test_user_credentials)
+    client.post("/create-profile", json=test_user_credentials[0])
 
-    response = client.post("/create-profile",json=test_user_credentials)
+    response = client.post("/create-profile",json=test_user_credentials[0])
 
     assert response.status_code == 400
 
@@ -263,3 +281,93 @@ def test_get_user_not_have_post(client):
 
     assert response.status_code == 404
     assert response.json().get("detail") == "Post not found"
+
+def test_change_post_not_authenticated(client,generate_token):
+
+    headers = {"Authorization": f"Bearer {generate_token}"}
+
+    post = {
+        "title":"Stark Industry",
+        "description":"Come work for Starks Industries."
+    }
+
+    response_post = client.post("/create-post", json=post, headers=headers)
+    post_id = response_post.json().get('id')
+
+    change_post = {
+        "title":"Victor Industry",
+        "description":"Come work for Victor Industries.",
+    }
+    response = client.put(f'/post-change/{post_id}', json=change_post)
+
+    assert response.status_code == 401
+
+def test_change_user_post_authenticated(client,generate_token):
+    headers = {"Authorization": f"Bearer {generate_token}"}
+
+    post = {
+        "title":"Stark Industry",
+        "description":"Come work for Starks Industries."
+    }
+
+    response_post = client.post("/create-post", json=post, headers=headers)
+    post_id = response_post.json().get('id')
+
+    change_post = {
+        "title":"Victor Industry",
+        "description":"Come work for Victor Industries.",
+    }
+    response = client.put(f'post-change/{post_id}', json=change_post, headers=headers)
+
+    assert response.status_code == 200
+
+
+def test_change_post_not_exist(client,generate_token):
+
+    headers = {"Authorization": f"Bearer {generate_token}"}
+
+    post = {
+        "title":"Stark Industry",
+        "description":"Come work for Starks Industries."
+    }
+
+    client.post("/create-post", json=post, headers=headers)
+    post_id = 999
+
+    change_post = {
+        "title":"Victor Industry",
+        "description":"Come work for Victor Industries.",
+    }
+    response = client.put(f'post-change/{post_id}', json=change_post, headers=headers)
+
+    assert response.status_code == 404
+    assert response.json().get("detail") == "Post not Found"
+
+
+
+def test_change_post_user_not_created(client, generate_token, generate_second_token):
+    headers = {"Authorization": f"Bearer {generate_token}"}
+    second_headers = {"Authorization": f"Bearer {generate_second_token}"}
+
+    post = {
+        "title":"Stark Industry",
+        "description":"Come work for Starks Industries."
+    }
+
+    response_post = client.post("/create-post", json=post, headers=headers)
+    post_id = response_post.json().get('id')
+
+    change_post = {
+        "title":"Victor Industry",
+        "description":"Come work for Victor Industries.",
+    }
+
+    response = client.put(f'/post-change/{post_id}', json=change_post, headers=second_headers)
+
+    assert response.status_code == 403
+
+
+
+
+
+

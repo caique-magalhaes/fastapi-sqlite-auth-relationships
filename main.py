@@ -2,7 +2,7 @@ from fastapi import FastAPI,Depends,HTTPException
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from profile import Profile, UserLogin, UserCreate, CreatePost, Post
 from sqlalchemy.orm import Session
-from crud import user_create, login, change_user, delete_user, create_post, return_all_posts,get_user_post
+from crud import user_create, login, change_post, delete_user, create_post, return_all_posts,get_user_post
 from db import engine, SessionLocal,Base
 from typing import Annotated, List
 from datetime import timedelta
@@ -81,15 +81,20 @@ def get_user(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],db:Sessi
 
     return {"access_token":access_token, "token_type":"bearer"}
 
-@app.put('/user-change/{username}', response_model=Profile)
-def alter_user(username:str,user:Profile,db:Session = Depends(dep_db)):
+@app.put('/post-change/{post_id}', response_model=Post)
+def alter_post(post_id:int, new_post:CreatePost ,db:Session = Depends(dep_db),current_user: str = Depends(get_current_user)):
 
-    update_user = change_user(username=username,user=user,db=db)
+    update_post = change_post(post_id=post_id, new_post=new_post,email=current_user, db=db)
 
-    if(update_user is None):
-        raise HTTPException(status_code=404, detail="User not Found")
+    print(update_post)
 
-    return update_user
+    if(update_post is None):
+        raise HTTPException(status_code=404, detail="Post not Found")
+    
+    if update_post == "not authorized":
+        raise HTTPException(status_code=403,detail="You are not authorized to update this post", headers={"WWW-Authenticate": "Bearer"})
+
+    return update_post
 
 
 @app.post('/create-post',response_model=Post)
