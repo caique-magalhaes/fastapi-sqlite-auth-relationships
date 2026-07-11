@@ -11,7 +11,7 @@ from jwt.exceptions import InvalidTokenError
 
 configure_env = dotenv_values(".env")
 
-SECRET_KEY = configure_env['SECRET_KEY'] or 'abcde_super_secret_test_key_12345'
+SECRET_KEY = configure_env.get('SECRET_KEY','abcde_super_secret_test_key_12345')
 ALGORITHM = "HS256"
 
 if not SECRET_KEY:
