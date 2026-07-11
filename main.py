@@ -2,7 +2,7 @@ from fastapi import FastAPI,Depends,HTTPException
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from profile import Profile, UserLogin, UserCreate, CreatePost, Post
 from sqlalchemy.orm import Session
-from crud import user_create, login, change_post, delete_user, create_post, return_all_posts,get_user_post
+from crud import user_create, login, change_post, delete_post, create_post, return_all_posts,get_user_post
 from db import engine, SessionLocal,Base
 from typing import Annotated, List
 from datetime import timedelta
@@ -86,19 +86,17 @@ def alter_post(post_id:int, new_post:CreatePost ,db:Session = Depends(dep_db),cu
 
     update_post = change_post(post_id=post_id, new_post=new_post,email=current_user, db=db)
 
-    print(update_post)
-
     if(update_post is None):
         raise HTTPException(status_code=404, detail="Post not Found")
     
-    if update_post == "not authorized":
+    if update_post == "forbidden":
         raise HTTPException(status_code=403,detail="You are not authorized to update this post", headers={"WWW-Authenticate": "Bearer"})
 
     return update_post
 
 
 @app.post('/create-post',response_model=Post)
-async def create_new_post(post:CreatePost, db:Session = Depends(dep_db),current_user: str = Depends(get_current_user)):
+async def create_new_post(post:CreatePost, db:Session = Depends(dep_db), current_user: str = Depends(get_current_user)):
     try:
 
         user = db.query(User).filter(User.email == current_user).first()
@@ -114,14 +112,15 @@ async def create_new_post(post:CreatePost, db:Session = Depends(dep_db),current_
         raise HTTPException(status_code=422, detail=str(error))
 
     
+@app.delete('/post-delete/{post_id}')
+def delete(post_id:int, db:Session = Depends(dep_db), current_user: str = Depends(get_current_user)):
     
+    post = delete_post(db=db, post_id=post_id, email=current_user)
 
-@app.delete('/user-delete/{username}')
-def delete(username:str,db:Session = Depends(dep_db)):
+    if(post is None):
+        raise HTTPException(status_code=404, detail="Post not Found")
+    
+    if(post == "forbidden"):
+        raise HTTPException(status_code=403,detail="You are not authorized to delete this post", headers={"WWW-Authenticate": "Bearer"})
 
-    deleted_user = delete_user(username=username,db=db)
-
-    if(deleted_user is None):
-        raise HTTPException(status_code=404, detail="User not Found")
-
-    return {"successful":"User has been Deleted"}
+    return {"successful":"Post has been Deleted", "post":post}

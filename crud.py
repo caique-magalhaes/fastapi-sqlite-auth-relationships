@@ -60,7 +60,7 @@ def change_post(post_id:int ,new_post:CreatePost, email:str,db:Session):
         return None
 
     if user_search.id != upload_post.user_id:
-        return "not authorized"
+        return "forbidden"
 
     upload_post.title = new_post.title
     upload_post.description = new_post.description
@@ -91,15 +91,25 @@ def create_post(post:CreatePost, db:Session, user_id:int):
 
         return None
 
-def delete_user(db:Session, username:str):
-    user_search = db.query(User).filter(User.name == username).first()
+def delete_post(db:Session, post_id:int, email:str):
+    user_search = db.query(User).filter(User.email == email).first()
+    post_search = db.query(Post).filter(Post.id == post_id).first()
 
-    if(user_search is None):
+    if post_search is None:
         return None
+    
+    if post_search.user_id != user_search.id:
+        return "forbidden"
+    
+    try:
 
+        db.delete(post_search)
+        db.commit()
+        return post_search
+    
+    except IntegrityError:
+        db.rollback()
 
-    db.delete(user_search)
-    db.commit()
-
-    return user_search
+        return None
+    
         

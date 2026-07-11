@@ -367,6 +367,69 @@ def test_change_post_user_not_created(client, generate_token, generate_second_to
     assert response.status_code == 403
 
 
+def test_delete_post_user_not_authenticated(client, generate_token):
+    headers = {"Authorization": f"Bearer {generate_token}"}
+
+    post = {
+        "title":"Stark Industry",
+        "description":"Come work for Starks Industries."
+    }
+
+    response_post = client.post("/create-post", json=post, headers=headers)
+    post_id = response_post.json().get('id')
+
+    response = client.delete(f'/post-delete/{post_id}')
+
+    assert response.status_code == 401
+
+def test_delete_post_not_exist(client, generate_token):
+    headers = {"Authorization": f"Bearer {generate_token}"}
+
+    post = {
+        "title":"Stark Industry",
+        "description":"Come work for Starks Industries."
+    }
+
+    client.post("/create-post", json=post, headers=headers)
+    post_id = 999
+
+    response = client.delete(f'/post-delete/{post_id}', headers=headers)
+
+    assert response.status_code == 404
+    assert response.json().get('detail') == "Post not Found"
+
+def test_delete_post_user_authenticated(client,generate_token):
+    headers = {"Authorization": f"Bearer {generate_token}"}
+    post = {
+        "title":"Stark Industry",
+        "description":"Come work for Starks Industries."
+    }
+
+    response_post = client.post("/create-post", json=post, headers=headers)
+    post_id = response_post.json().get('id')
+
+    response = client.delete(f'/post-delete/{post_id}', headers=headers)
+
+    assert response.status_code == 200
+
+def test_delete_another_user_post(client, generate_token, generate_second_token ):
+    headers = {"Authorization": f"Bearer {generate_token}"}
+    second_headers = {"Authorization": f"Bearer {generate_second_token}"}
+
+    post = {
+        "title":"Stark Industry",
+        "description":"Come work for Starks Industries."
+    }
+
+    response_post = client.post("/create-post", json=post, headers=headers)
+    post_id = response_post.json().get('id')
+
+    response = client.delete(f'/post-delete/{post_id}', headers=second_headers)
+
+    assert response.status_code == 403
+
+
+
 
 
 
