@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from profile import Profile, User, UserCreate, CreatePost
+from profile import Profile, UserLogin, UserCreate, CreatePost
 from models import User, Post
 from authenticated import get_hash, check_password
 
@@ -37,7 +37,7 @@ def user_create(user:UserCreate, db:Session):
         return None
 
 
-def login(db:Session, user:User):
+def login(db:Session, user:UserLogin):
     get_user = db.query(User).filter(User.email == user.email).first()
     
 
@@ -67,8 +67,8 @@ def change_user(db:Session, user:Profile,username:str):
     return user_search
 
 
-def create_post(post:CreatePost, db:Session):
-    created_post = Post(title = post.title, description = post.description, user_id= post.user_id)
+def create_post(post:CreatePost, db:Session, user_id:int):
+    created_post = Post(title = post.title, description = post.description, user_id = user_id)
 
     try:
         db.add(created_post)

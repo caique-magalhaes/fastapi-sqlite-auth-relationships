@@ -5,12 +5,12 @@ from typing import List
 class CreatePost(BaseModel):
     title:str
     description:str 
-    user_id:int
     class ConfigDict:
         from_attributes = True
 
 class Post(CreatePost):
     id:int
+    user_id:int
     class ConfigDict:
         from_attributes = True
     
@@ -22,12 +22,12 @@ class User_Posts(BaseModel):
         from_attributes = True
 
 
-class User(BaseModel):
+class UserLogin(BaseModel):
     email:str
     password:str
 
 
-class UserCreate(User):
+class UserCreate(UserLogin):
     name:str
     country:str
     city:str

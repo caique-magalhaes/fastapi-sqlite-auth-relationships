@@ -48,6 +48,34 @@ def client(db_session):
 
     
 
+@pytest.fixture(scope='function')
+def test_user_credentials():
+    standard_user = {
+        "name": "Anthony",
+        "country": "Brazil",
+        "city": "Sao Paulo",
+        "email":"anthony@stark.com",
+        "password":"Abc1234"
+    }
+    
+    return standard_user
+
+
+@pytest.fixture(scope='function')
+def generate_token(client,test_user_credentials):
+    response = client.post("/create-profile", json=test_user_credentials)
+
+    user_info = {
+        "username":test_user_credentials['email'],
+        "password":test_user_credentials['password']
+    }
+
+    response = client.post('/user/login/token', data=user_info)
+    json_data = response.json()
+    
+    return json_data.get('access_token')
+
+
 
 
 ## ─── THE TESTS ────────────────────────────────────────────────────────
@@ -59,21 +87,37 @@ def test_return_all_posts(client):
     assert response.status_code == 200
     assert isinstance(response.json(), List)
 
-def test_create_profile(client):
+def test_create_profile(client,test_user_credentials):
     """Test creating a brand new profile"""
-    payload = {
-        "name": "Anthony",
-        "country": "Brazil",
-        "city": "Sao Paulo",
-        "email":"anthony@stark.com",
-        "password":"Abc1234"
-    }
-    response = client.post("/create-profile", json=payload)
+    
+    response = client.post("/create-profile", json=test_user_credentials)
     
     # Debugging print statement: if it fails, pytest will show us exactly what the server responded with!
     print("SERVER RESPONSE:", response.json()) 
     
     assert response.status_code == 200
+
+
+def test_login_for_access_token(client, test_user_credentials):
+    """Check if it is returning the token in the response."""
+
+    response = client.post("/create-profile", json=test_user_credentials)
+
+    user_info = {
+        "username":test_user_credentials['email'],
+        "password":test_user_credentials['password']
+    }
+
+    response = client.post('/user/login/token', data=user_info)
+
+    assert response.status_code == 200
+
+    json_data = response.json()
+    access_token = json_data.get('access_token')
+
+    assert access_token is not None
+    assert json_data.get('token_type') == "bearer"
+    
 
 
 def test_create_profile_blank_field(client):
@@ -141,139 +185,77 @@ def test_create_profile_blank_field(client):
 
 
 
-def test_create_profile_email_already_exist(client):
-    payload = {
-        "name": "Anthony",
-        "country": "Brazil",
-        "city": "Sao Paulo",
-        "email":"anthony@stark.com",
-        "password":"Abc1234"
-    }
-    client.post("/create-profile", json=payload)
+def test_create_profile_email_already_exist(client, test_user_credentials):
+    
+    client.post("/create-profile", json=test_user_credentials)
 
-    response = client.post("/create-profile",json=payload)
+    response = client.post("/create-profile",json=test_user_credentials)
 
     assert response.status_code == 400
 
 
-def test_create_post(client):
-    user = {
-        "name": "Pepper Potts",
-        "country": "US",
-        "city": "Malibu",
-        "email": "pepper@stark.com",
-        "password": "RescuePassword"
-    }
-
-    
-    user_response = client.post("/create-profile",json=user)
-
-    user_id = user_response.json()['id']
-
+def test_create_post_no_authenticated(client):
     payload = {
         "title":"Stark Industry",
-        "description":"Come work for Starks Industries.",
-        "user_id":user_id,
-
+        "description":"Come work for Starks Industries."
     }
 
     response = client.post("/create-post", json=payload)
 
+    assert response.status_code == 401
+
+def test_create_authenticated_post(client,generate_token):
+
+    headers = {"Authorization": f"Bearer {generate_token}"}
+
+    post = {
+        "title":"Stark Industry",
+        "description":"Come work for Starks Industries."
+    }
+
+    response = client.post("/create-post", json=post, headers=headers)
+
     assert response.status_code == 200
 
+def test_create_post_with_blank_field(client, generate_token):
 
-def test_create_post_with_blank_field(client):
-    user = {
-    "name": "Pepper Potts",
-    "country": "US",
-    "city": "Malibu",
-    "email": "pepper@stark.com",
-    "password": "RescuePassword"
-}   
-    user_response = client.post("/create-profile",json=user)
-    user_id = user_response.json()['id']
+    headers = {"Authorization": f"Bearer {generate_token}"}
 
     post_without_title = {
         "title":"   ",
         "description":"Come work for Starks Industries.",
-        "user_id":user_id,
-
     }
 
-    response = client.post("/create-post", json=post_without_title)
+    response = client.post("/create-post", json=post_without_title, headers=headers)
 
     assert response.status_code == 422
 
     post_without_descritpion = {
         "title":"Stark Industry",
         "description":"  ",
-        "user_id":user_id,
     }
 
-    response = client.post("/create-post", json=post_without_descritpion)
-
-    assert response.status_code == 422
-
-
-
-def test_create_post_with_id_no_exist(client):
-    
-    post_user_id_not_exist = {
-        "title":"Stark Industry",
-        "description":"Come work for Starks Industries.",
-        "user_id":2,
-    }
-
-    response = client.post("/create-post", json=post_user_id_not_exist)
-
-    assert response.status_code == 422
-
-    post_with_user_id_string = {
-        "title":"Stark Industry",
-        "description":"Come work for Starks Industries.",
-        "user_id":"ok",
-    }
-
-    response = client.post("/create-post", json=post_with_user_id_string)
+    response = client.post("/create-post", json=post_without_descritpion,headers=headers)
 
     assert response.status_code == 422
    
     
-def test_get_user_post(client):
-    user = {
-        "name": "Anthony",
-        "country": "Brazil",
-        "city": "Sao Paulo",
-        "email":"anthony@stark.com",
-        "password":"Abc1234"
-    }
-
-    response_user = client.post("/create-profile", json=user)
-    user_id = response_user.json()['id']
-
+def test_get_user_post(client, generate_token):    
+    headers = {"Authorization": f"Bearer {generate_token}"}
     post = {
         "title":"Stark Industry",
         "description":"Come work for Starks Industries.",
-        "user_id":user_id,
     }
     
-    client.post("/create-post", json=post)
-
+    repsonse_post = client.post("/create-post", json=post, headers=headers)
+    
+    user_id = repsonse_post.json()['user_id']
     response = client.get(f"/get-post/{user_id}")
 
     assert response.status_code == 200
     assert isinstance(response.json(), List)
 
 def test_get_user_not_have_post(client):
-    user = {
-        "name": "Anthony",
-        "country": "Brazil",
-        "city": "Sao Paulo",
-        "email":"anthony@stark.com",
-        "password":"Abc1234"
-    }
-
-    client.post("/create-profile", json=user)
 
     id_not_exist = 999
 
