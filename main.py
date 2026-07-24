@@ -1,4 +1,4 @@
-from fastapi import FastAPI,Depends,HTTPException
+from fastapi import FastAPI,Depends,HTTPException, Response
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from profile import Profile, UserLogin, UserCreate, CreatePost, Post
 from sqlalchemy.orm import Session
@@ -9,11 +9,13 @@ from datetime import timedelta
 from dotenv import dotenv_values
 from authenticated import create_access_token, get_current_user
 from models import User
+from fastapi.middleware.cors import CORSMiddleware
 
 configure_env = dotenv_values(".env")
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+origins = configure_env.get("ALLOWED_ORIGINS")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/user/login/token")
 Base.metadata.create_all(bind=engine)
@@ -26,6 +28,16 @@ def dep_db():
         yield db
     finally:
         db.close()
+
+#middleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins = origins,
+    allow_credentials = True,
+    allow_methods = ["*"],
+    allow_headers = ["*"],
+)
     
 
 
@@ -65,7 +77,7 @@ def create_profile(user:UserCreate,db:Session = Depends(dep_db)):
 
 
 @app.post('/user/login/token')
-def get_user(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],db:Session = Depends(dep_db)):
+def get_user(response:Response,form_data: Annotated[OAuth2PasswordRequestForm, Depends()],db:Session = Depends(dep_db)):
     user = UserLogin(email=form_data.username, password = form_data.password)
 
     authenticated_user = login(user=user, db=db)
@@ -77,9 +89,24 @@ def get_user(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],db:Sessi
 
     access_token = create_access_token(data={"sub":authenticated_user.email}, expires_delta=access_token_expires)
 
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {access_token}",
+        httponly=True,
+        samesite="lax",
+        secure=False,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/"
+    )
 
 
-    return {"access_token":access_token, "token_type":"bearer"}
+    return {"message": "Login successful","email": authenticated_user.email}
+
+@app.post('/user/logout')
+def logout(reponse:Response):
+    reponse.delete_cookie(key="access_token", path="/", httponly=True)
+
+    return{"message":"Successfully logged out!!"}
 
 @app.put('/post-change/{post_id}', response_model=Post)
 def alter_post(post_id:int, new_post:CreatePost ,db:Session = Depends(dep_db),current_user: str = Depends(get_current_user)):

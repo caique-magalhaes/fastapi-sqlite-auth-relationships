@@ -1,8 +1,5 @@
-from typing import Annotated
-
-from fastapi.security import OAuth2PasswordBearer
 from pwdlib import PasswordHash
-from fastapi import HTTPException, Depends
+from fastapi import HTTPException, Cookie
 from dotenv import dotenv_values
 from datetime import datetime, timedelta, timezone
 import jwt
@@ -15,11 +12,9 @@ SECRET_KEY = configure_env.get('SECRET_KEY','abcde_super_secret_test_key_12345')
 ALGORITHM = "HS256"
 
 if not SECRET_KEY:
-    raise RuntimeError("SECRET_KEY missing from environment configuration!")
+    raise RuntimeError("SECRET_KDependsEY missing from environment configuration!")
 
 password_hash = PasswordHash.recommended()
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/user/login/token")
 
 def get_hash(password):
   if not password or not password.strip():
@@ -47,15 +42,24 @@ def create_access_token(data:dict, expires_delta:timedelta | None = None):
   return encoded_jwt
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+async def get_current_user(access_token: str | None = Cookie(None, alias="access_token")):
+
   credentials_exceptions = HTTPException(
     status_code=401,
     detail="Could not validate credentials",
     headers={"WWW-Authenticate": "Bearer"}
   )
 
+
+  if not access_token:
+      raise credentials_exceptions
+  
   try:
+
+    token = access_token.replace("Bearer", "").strip() if access_token.startswith("Bearer") else access_token
+
     payload = jwt.decode(token,SECRET_KEY, algorithms=[ALGORITHM])
+
     email = payload.get("sub")
 
     if email is None:

@@ -70,31 +70,34 @@ def test_user_credentials():
 
 @pytest.fixture(scope='function')
 def generate_token(client,test_user_credentials):
-    response = client.post("/create-profile", json=test_user_credentials[0])
+    client.post("/create-profile", json=test_user_credentials[0])
 
     user_info = {
         "username":test_user_credentials[0]['email'],
         "password":test_user_credentials[0]['password']
     }
 
-    response = client.post('/user/login/token', data=user_info)
-    json_data = response.json()
-    
-    return json_data.get('access_token')
+    login = client.post('/user/login/token', data=user_info)
+
+    token = login.cookies.get("access_token")
+
+    return token
 
 @pytest.fixture(scope='function')
 def generate_second_token(client, test_user_credentials):
-    response = client.post("/create-profile", json=test_user_credentials[1])
-
-    user_info = {
+   client.post("/create-profile", json=test_user_credentials[1])
+   
+   user_info = {
         "username":test_user_credentials[1]['email'],
         "password":test_user_credentials[1]['password']
     }
+   
+   login = client.post('/user/login/token', data=user_info)
 
-    response = client.post('/user/login/token', data=user_info)
-    json_data = response.json()
-    
-    return json_data.get('access_token')
+   token = login.cookies.get("access_token")
+
+   return token
+   
 
 ## ─── THE TESTS ────────────────────────────────────────────────────────
 
@@ -131,11 +134,20 @@ def test_login_for_access_token(client, test_user_credentials):
     assert response.status_code == 200
 
     json_data = response.json()
-    access_token = json_data.get('access_token')
 
-    assert access_token is not None
-    assert json_data.get('token_type') == "bearer"
+
+    assert json_data.get('message') == "Login successful"
+    assert json_data.get('email') == user_info["username"]
     
+def test_logout(client, generate_token):
+    client.cookies.clear()
+    client.cookies.set("access_token", generate_token)
+
+    response = client.post("/user/logout")
+
+    assert response.status_code == 200
+    assert response.json()['message']== 'Successfully logged out!!'
+
 
 
 def test_create_profile_blank_field(client):
@@ -223,28 +235,29 @@ def test_create_post_no_authenticated(client):
     assert response.status_code == 401
 
 def test_create_authenticated_post(client,generate_token):
-
-    headers = {"Authorization": f"Bearer {generate_token}"}
+    client.cookies.clear()
+    client.cookies.set("access_token", generate_token)
+    
 
     post = {
         "title":"Stark Industry",
         "description":"Come work for Starks Industries."
     }
 
-    response = client.post("/create-post", json=post, headers=headers)
+    response = client.post("/create-post", json=post)
 
     assert response.status_code == 200
 
 def test_create_post_with_blank_field(client, generate_token):
-
-    headers = {"Authorization": f"Bearer {generate_token}"}
+    client.cookies.clear()
+    client.cookies.set("access_token", generate_token)
 
     post_without_title = {
         "title":"   ",
         "description":"Come work for Starks Industries.",
     }
 
-    response = client.post("/create-post", json=post_without_title, headers=headers)
+    response = client.post("/create-post", json=post_without_title)
 
     assert response.status_code == 422
 
@@ -253,19 +266,19 @@ def test_create_post_with_blank_field(client, generate_token):
         "description":"  ",
     }
 
-    response = client.post("/create-post", json=post_without_descritpion,headers=headers)
+    response = client.post("/create-post", json=post_without_descritpion)
 
     assert response.status_code == 422
    
     
 def test_get_user_post(client, generate_token):    
-    headers = {"Authorization": f"Bearer {generate_token}"}
+    client.cookies.set("access_token", generate_token)
     post = {
         "title":"Stark Industry",
         "description":"Come work for Starks Industries.",
     }
     
-    repsonse_post = client.post("/create-post", json=post, headers=headers)
+    repsonse_post = client.post("/create-post", json=post)
     
     user_id = repsonse_post.json()['user_id']
     response = client.get(f"/get-post/{user_id}")
@@ -283,16 +296,18 @@ def test_get_user_not_have_post(client):
     assert response.json().get("detail") == "Post not found"
 
 def test_change_post_not_authenticated(client,generate_token):
-
-    headers = {"Authorization": f"Bearer {generate_token}"}
+    client.cookies.clear()
+    client.cookies.set("access_token", generate_token)
 
     post = {
         "title":"Stark Industry",
         "description":"Come work for Starks Industries."
     }
 
-    response_post = client.post("/create-post", json=post, headers=headers)
+    response_post = client.post("/create-post", json=post)
     post_id = response_post.json().get('id')
+
+    client.cookies.clear()
 
     change_post = {
         "title":"Victor Industry",
@@ -303,42 +318,43 @@ def test_change_post_not_authenticated(client,generate_token):
     assert response.status_code == 401
 
 def test_change_user_post_authenticated(client,generate_token):
-    headers = {"Authorization": f"Bearer {generate_token}"}
+    client.cookies.clear()
+    client.cookies.set("access_token", generate_token)
 
     post = {
         "title":"Stark Industry",
         "description":"Come work for Starks Industries."
     }
 
-    response_post = client.post("/create-post", json=post, headers=headers)
+    response_post = client.post("/create-post", json=post)
     post_id = response_post.json().get('id')
 
     change_post = {
         "title":"Victor Industry",
         "description":"Come work for Victor Industries.",
     }
-    response = client.put(f'post-change/{post_id}', json=change_post, headers=headers)
+    response = client.put(f'post-change/{post_id}', json=change_post)
 
     assert response.status_code == 200
 
 
 def test_change_post_not_exist(client,generate_token):
-
-    headers = {"Authorization": f"Bearer {generate_token}"}
+    client.cookies.clear()
+    client.cookies.set("access_token", generate_token)
 
     post = {
         "title":"Stark Industry",
         "description":"Come work for Starks Industries."
     }
 
-    client.post("/create-post", json=post, headers=headers)
+    client.post("/create-post", json=post)
     post_id = 999
 
     change_post = {
         "title":"Victor Industry",
         "description":"Come work for Victor Industries.",
     }
-    response = client.put(f'post-change/{post_id}', json=change_post, headers=headers)
+    response = client.put(f'post-change/{post_id}', json=change_post)
 
     assert response.status_code == 404
     assert response.json().get("detail") == "Post not Found"
@@ -346,15 +362,15 @@ def test_change_post_not_exist(client,generate_token):
 
 
 def test_change_post_user_not_created(client, generate_token, generate_second_token):
-    headers = {"Authorization": f"Bearer {generate_token}"}
-    second_headers = {"Authorization": f"Bearer {generate_second_token}"}
+    client.cookies.clear()
+    client.cookies.set("access_token", generate_token)
 
     post = {
         "title":"Stark Industry",
         "description":"Come work for Starks Industries."
     }
 
-    response_post = client.post("/create-post", json=post, headers=headers)
+    response_post = client.post("/create-post", json=post)
     post_id = response_post.json().get('id')
 
     change_post = {
@@ -362,74 +378,83 @@ def test_change_post_user_not_created(client, generate_token, generate_second_to
         "description":"Come work for Victor Industries.",
     }
 
-    response = client.put(f'/post-change/{post_id}', json=change_post, headers=second_headers)
+    client.cookies.set("access_token", generate_second_token)
+
+    response = client.put(f'/post-change/{post_id}', json=change_post)
 
     assert response.status_code == 403
 
 
 def test_delete_post_user_not_authenticated(client, generate_token):
-    headers = {"Authorization": f"Bearer {generate_token}"}
+    client.cookies.clear()
+    client.cookies.set("access_token", generate_token)
 
     post = {
         "title":"Stark Industry",
         "description":"Come work for Starks Industries."
     }
 
-    response_post = client.post("/create-post", json=post, headers=headers)
+    response_post = client.post("/create-post", json=post)
     post_id = response_post.json().get('id')
+
+    client.cookies.clear()
 
     response = client.delete(f'/post-delete/{post_id}')
 
     assert response.status_code == 401
 
 def test_delete_post_not_exist(client, generate_token):
-    headers = {"Authorization": f"Bearer {generate_token}"}
+    client.cookies.clear()
+    client.cookies.set("access_token", generate_token)
 
     post = {
         "title":"Stark Industry",
         "description":"Come work for Starks Industries."
     }
 
-    client.post("/create-post", json=post, headers=headers)
+    client.post("/create-post", json=post)
     post_id = 999
 
-    response = client.delete(f'/post-delete/{post_id}', headers=headers)
+    response = client.delete(f'/post-delete/{post_id}')
 
     assert response.status_code == 404
     assert response.json().get('detail') == "Post not Found"
 
 def test_delete_post_user_authenticated(client,generate_token):
-    headers = {"Authorization": f"Bearer {generate_token}"}
+    client.cookies.clear()
+    client.cookies.set("access_token", generate_token)
+
     post = {
         "title":"Stark Industry",
         "description":"Come work for Starks Industries."
     }
 
-    response_post = client.post("/create-post", json=post, headers=headers)
+    response_post = client.post("/create-post", json=post)
     post_id = response_post.json().get('id')
 
-    response = client.delete(f'/post-delete/{post_id}', headers=headers)
+    response = client.delete(f'/post-delete/{post_id}')
 
     assert response.status_code == 200
 
 def test_delete_another_user_post(client, generate_token, generate_second_token ):
-    headers = {"Authorization": f"Bearer {generate_token}"}
-    second_headers = {"Authorization": f"Bearer {generate_second_token}"}
+    client.cookies.clear()
 
+    client.cookies.set("access_token",generate_token)
     post = {
         "title":"Stark Industry",
         "description":"Come work for Starks Industries."
     }
 
-    response_post = client.post("/create-post", json=post, headers=headers)
+    response_post = client.post("/create-post", json=post)
+
+    
     post_id = response_post.json().get('id')
 
-    response = client.delete(f'/post-delete/{post_id}', headers=second_headers)
+    client.cookies.set("access_token", generate_second_token)
+
+    response = client.delete(f'/post-delete/{post_id}')
 
     assert response.status_code == 403
-
-
-
 
 
 
