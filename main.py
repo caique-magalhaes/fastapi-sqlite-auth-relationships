@@ -15,7 +15,7 @@ configure_env = dotenv_values(".env")
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-origins = configure_env.get("ALLOWED_ORIGINS")
+origins = configure_env.get("ALLOWED_ORIGINS",[""])
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/user/login/token")
 Base.metadata.create_all(bind=engine)
