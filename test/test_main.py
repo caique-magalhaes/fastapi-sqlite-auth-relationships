@@ -113,9 +113,6 @@ def test_create_profile(client,test_user_credentials):
     
     response = client.post("/user/register", json=test_user_credentials[0])
     
-    # Debugging print statement: if it fails, pytest will show us exactly what the server responded with!
-    print("SERVER RESPONSE:", response.json()) 
-    
     assert response.status_code == 200
 
 
