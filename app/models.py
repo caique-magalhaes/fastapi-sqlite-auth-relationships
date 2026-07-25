@@ -1,6 +1,6 @@
 from sqlalchemy import String, Integer, ForeignKey
 from sqlalchemy.orm import mapped_column, relationship, validates
-from db import Base
+from app.core.db import Base
 
 class User(Base):
     __tablename__='user'

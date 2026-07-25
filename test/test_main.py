@@ -6,8 +6,8 @@ from sqlalchemy import create_engine,StaticPool
 from sqlalchemy.orm import sessionmaker
 
 # 1. Force Python to import your actual models right now
-from db import Base
-from main import app, dep_db
+from app.core.db import Base, dep_db
+from app.main import app
 
 # 2. Setup our independent test database
 SQLITE_DATABASE_URL = "sqlite://"
@@ -70,7 +70,7 @@ def test_user_credentials():
 
 @pytest.fixture(scope='function')
 def generate_token(client,test_user_credentials):
-    client.post("/create-profile", json=test_user_credentials[0])
+    client.post("/user/register", json=test_user_credentials[0])
 
     user_info = {
         "username":test_user_credentials[0]['email'],
@@ -85,7 +85,7 @@ def generate_token(client,test_user_credentials):
 
 @pytest.fixture(scope='function')
 def generate_second_token(client, test_user_credentials):
-   client.post("/create-profile", json=test_user_credentials[1])
+   client.post("/user/register", json=test_user_credentials[1])
    
    user_info = {
         "username":test_user_credentials[1]['email'],
@@ -111,7 +111,7 @@ def test_return_all_posts(client):
 def test_create_profile(client,test_user_credentials):
     """Test creating a brand new profile"""
     
-    response = client.post("/create-profile", json=test_user_credentials[0])
+    response = client.post("/user/register", json=test_user_credentials[0])
     
     # Debugging print statement: if it fails, pytest will show us exactly what the server responded with!
     print("SERVER RESPONSE:", response.json()) 
@@ -122,7 +122,7 @@ def test_create_profile(client,test_user_credentials):
 def test_login_for_access_token(client, test_user_credentials):
     """Check if it is returning the token in the response."""
 
-    response = client.post("/create-profile", json=test_user_credentials[0])
+    response = client.post("/user/register", json=test_user_credentials[0])
 
     user_info = {
         "username":test_user_credentials[0]['email'],
@@ -159,7 +159,7 @@ def test_create_profile_blank_field(client):
         "password":"Abc1234"
     }
 
-    response = client.post("/create-profile", json=payload_without_name)
+    response = client.post("/user/register", json=payload_without_name)
 
     assert response.status_code == 422
 
@@ -171,7 +171,7 @@ def test_create_profile_blank_field(client):
         "password":"Abc1234"
     }
 
-    response = client.post("/create-profile", json=payload_without_city)
+    response = client.post("/user/register", json=payload_without_city)
 
     assert response.status_code == 422
 
@@ -183,7 +183,7 @@ def test_create_profile_blank_field(client):
         "password":"Abc1234"
     }
 
-    response = client.post("/create-profile", json=payload_without_email)
+    response = client.post("/user/register", json=payload_without_email)
 
     assert response.status_code == 422
 
@@ -195,7 +195,7 @@ def test_create_profile_blank_field(client):
         "password":""
     }
 
-    response = client.post("/create-profile", json=payload_without_password)
+    response = client.post("/user/register", json=payload_without_password)
 
     assert response.status_code == 422
 
@@ -207,7 +207,7 @@ def test_create_profile_blank_field(client):
         "password":"Abc1234"
     }
 
-    response = client.post('/create-profile', json = payload_without_country)
+    response = client.post('/user/register', json = payload_without_country)
 
     assert response.json()['country'] == 'UK'
 
@@ -217,9 +217,9 @@ def test_create_profile_blank_field(client):
 
 def test_create_profile_email_already_exist(client, test_user_credentials):
     
-    client.post("/create-profile", json=test_user_credentials[0])
+    client.post("/user/register", json=test_user_credentials[0])
 
-    response = client.post("/create-profile",json=test_user_credentials[0])
+    response = client.post("/user/register",json=test_user_credentials[0])
 
     assert response.status_code == 400
 
@@ -230,7 +230,7 @@ def test_create_post_no_authenticated(client):
         "description":"Come work for Starks Industries."
     }
 
-    response = client.post("/create-post", json=payload)
+    response = client.post("/post/create-post", json=payload)
 
     assert response.status_code == 401
 
@@ -244,7 +244,7 @@ def test_create_authenticated_post(client,generate_token):
         "description":"Come work for Starks Industries."
     }
 
-    response = client.post("/create-post", json=post)
+    response = client.post("/post/create-post", json=post)
 
     assert response.status_code == 200
 
@@ -257,7 +257,7 @@ def test_create_post_with_blank_field(client, generate_token):
         "description":"Come work for Starks Industries.",
     }
 
-    response = client.post("/create-post", json=post_without_title)
+    response = client.post("/post/create-post", json=post_without_title)
 
     assert response.status_code == 422
 
@@ -266,7 +266,7 @@ def test_create_post_with_blank_field(client, generate_token):
         "description":"  ",
     }
 
-    response = client.post("/create-post", json=post_without_descritpion)
+    response = client.post("/post/create-post", json=post_without_descritpion)
 
     assert response.status_code == 422
    
@@ -278,10 +278,10 @@ def test_get_user_post(client, generate_token):
         "description":"Come work for Starks Industries.",
     }
     
-    repsonse_post = client.post("/create-post", json=post)
+    repsonse_post = client.post("/post/create-post", json=post)
     
     user_id = repsonse_post.json()['user_id']
-    response = client.get(f"/get-post/{user_id}")
+    response = client.get(f"post/get-post/{user_id}")
 
     assert response.status_code == 200
     assert isinstance(response.json(), List)
@@ -290,7 +290,7 @@ def test_get_user_not_have_post(client):
 
     id_not_exist = 999
 
-    response = client.get(f"/get-post/{id_not_exist}")
+    response = client.get(f"post/get-post/{id_not_exist}")
 
     assert response.status_code == 404
     assert response.json().get("detail") == "Post not found"
@@ -304,7 +304,7 @@ def test_change_post_not_authenticated(client,generate_token):
         "description":"Come work for Starks Industries."
     }
 
-    response_post = client.post("/create-post", json=post)
+    response_post = client.post("/post/create-post", json=post)
     post_id = response_post.json().get('id')
 
     client.cookies.clear()
@@ -313,7 +313,7 @@ def test_change_post_not_authenticated(client,generate_token):
         "title":"Victor Industry",
         "description":"Come work for Victor Industries.",
     }
-    response = client.put(f'/post-change/{post_id}', json=change_post)
+    response = client.put(f'/post/post-change/{post_id}', json=change_post)
 
     assert response.status_code == 401
 
@@ -326,14 +326,14 @@ def test_change_user_post_authenticated(client,generate_token):
         "description":"Come work for Starks Industries."
     }
 
-    response_post = client.post("/create-post", json=post)
+    response_post = client.post("/post/create-post", json=post)
     post_id = response_post.json().get('id')
 
     change_post = {
         "title":"Victor Industry",
         "description":"Come work for Victor Industries.",
     }
-    response = client.put(f'post-change/{post_id}', json=change_post)
+    response = client.put(f'/post/post-change/{post_id}', json=change_post)
 
     assert response.status_code == 200
 
@@ -347,14 +347,14 @@ def test_change_post_not_exist(client,generate_token):
         "description":"Come work for Starks Industries."
     }
 
-    client.post("/create-post", json=post)
+    client.post("/post/create-post", json=post)
     post_id = 999
 
     change_post = {
         "title":"Victor Industry",
         "description":"Come work for Victor Industries.",
     }
-    response = client.put(f'post-change/{post_id}', json=change_post)
+    response = client.put(f'/post/post-change/{post_id}', json=change_post)
 
     assert response.status_code == 404
     assert response.json().get("detail") == "Post not Found"
@@ -370,7 +370,7 @@ def test_change_post_user_not_created(client, generate_token, generate_second_to
         "description":"Come work for Starks Industries."
     }
 
-    response_post = client.post("/create-post", json=post)
+    response_post = client.post("/post/create-post", json=post)
     post_id = response_post.json().get('id')
 
     change_post = {
@@ -380,7 +380,7 @@ def test_change_post_user_not_created(client, generate_token, generate_second_to
 
     client.cookies.set("access_token", generate_second_token)
 
-    response = client.put(f'/post-change/{post_id}', json=change_post)
+    response = client.put(f'/post/post-change/{post_id}', json=change_post)
 
     assert response.status_code == 403
 
@@ -394,12 +394,12 @@ def test_delete_post_user_not_authenticated(client, generate_token):
         "description":"Come work for Starks Industries."
     }
 
-    response_post = client.post("/create-post", json=post)
+    response_post = client.post("/post/create-post", json=post)
     post_id = response_post.json().get('id')
 
     client.cookies.clear()
 
-    response = client.delete(f'/post-delete/{post_id}')
+    response = client.delete(f'/post/post-delete/{post_id}')
 
     assert response.status_code == 401
 
@@ -412,10 +412,10 @@ def test_delete_post_not_exist(client, generate_token):
         "description":"Come work for Starks Industries."
     }
 
-    client.post("/create-post", json=post)
+    client.post("/post/create-post", json=post)
     post_id = 999
 
-    response = client.delete(f'/post-delete/{post_id}')
+    response = client.delete(f'/post/post-delete/{post_id}')
 
     assert response.status_code == 404
     assert response.json().get('detail') == "Post not Found"
@@ -429,10 +429,10 @@ def test_delete_post_user_authenticated(client,generate_token):
         "description":"Come work for Starks Industries."
     }
 
-    response_post = client.post("/create-post", json=post)
+    response_post = client.post("/post/create-post", json=post)
     post_id = response_post.json().get('id')
 
-    response = client.delete(f'/post-delete/{post_id}')
+    response = client.delete(f'/post/post-delete/{post_id}')
 
     assert response.status_code == 200
 
@@ -445,14 +445,14 @@ def test_delete_another_user_post(client, generate_token, generate_second_token 
         "description":"Come work for Starks Industries."
     }
 
-    response_post = client.post("/create-post", json=post)
+    response_post = client.post("/post/create-post", json=post)
 
     
     post_id = response_post.json().get('id')
 
     client.cookies.set("access_token", generate_second_token)
 
-    response = client.delete(f'/post-delete/{post_id}')
+    response = client.delete(f'/post/post-delete/{post_id}')
 
     assert response.status_code == 403
 

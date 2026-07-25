@@ -17,3 +17,11 @@ def set_slite_pragma(dbapi_connection, connection_record):
 SessionLocal = sessionmaker(autoflush=False, autocommit=False,bind=engine)
 
 Base = declarative_base()
+
+#dependency
+def dep_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

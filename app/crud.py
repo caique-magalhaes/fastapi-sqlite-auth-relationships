@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from profile import Profile, UserLogin, UserCreate, CreatePost
-from models import User, Post
-from authenticated import get_hash, check_password
+from app.profile import Profile, UserLogin, UserCreate, CreatePost
+from app.models import User, Post
+from app.core.authenticated import get_hash, check_password
 
 
 def return_all_posts(db:Session):
