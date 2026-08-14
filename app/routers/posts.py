@@ -19,7 +19,7 @@ async def create_new_post(post:CreatePost, db:Session = Depends(dep_db), current
         user = db.query(User).filter(User.email == current_user).first()
         if(user is None):
             raise HTTPException(status_code=401,detail="Could not validate credentials", headers={"WWW-Authenticate": "Bearer"})
-        
+
         created_post = create_post(post=post,db=db,user_id=user.id)
 
         if(created_post is None):
@@ -39,7 +39,7 @@ def user_post(user_id:int, db:Session = Depends(dep_db)):
         raise HTTPException(status_code=404, detail="Post not found")
 
     return user_post
-   
+
 
 
 
@@ -51,21 +51,21 @@ def alter_post(post_id:int, new_post:CreatePost ,db:Session = Depends(dep_db),cu
 
     if(update_post is None):
         raise HTTPException(status_code=404, detail="Post not Found")
-    
+
     if update_post == "forbidden":
         raise HTTPException(status_code=403,detail="You are not authorized to update this post", headers={"WWW-Authenticate": "Bearer"})
 
     return update_post
 
-    
+
 @router.delete('/post-delete/{post_id}')
 def delete(post_id:int, db:Session = Depends(dep_db), current_user: str = Depends(get_current_user)):
-    
+
     post = delete_post(db=db, post_id=post_id, email=current_user)
 
     if(post is None):
         raise HTTPException(status_code=404, detail="Post not Found")
-    
+
     if(post == "forbidden"):
         raise HTTPException(status_code=403,detail="You are not authorized to delete this post", headers={"WWW-Authenticate": "Bearer"})
 

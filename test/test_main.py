@@ -18,9 +18,9 @@ TestingSessionLocal = sessionmaker(autoflush=False, autocommit=False, bind=engin
 
 @pytest.fixture(scope='function')
 def db_session():
-   
+
     Base.metadata.create_all(bind=engine)
-    
+
     session = TestingSessionLocal()
     try:
         yield session
@@ -43,10 +43,10 @@ def client(db_session):
     yield TestClient(app)
 
     app.dependency_overrides.clear()
-   
 
 
-    
+
+
 
 @pytest.fixture(scope='function')
 def test_user_credentials():
@@ -86,33 +86,33 @@ def generate_token(client,test_user_credentials):
 @pytest.fixture(scope='function')
 def generate_second_token(client, test_user_credentials):
    client.post("/user/register", json=test_user_credentials[1])
-   
+
    user_info = {
         "username":test_user_credentials[1]['email'],
         "password":test_user_credentials[1]['password']
     }
-   
+
    login = client.post('/user/login/token', data=user_info)
 
    token = login.cookies.get("access_token")
 
    return token
-   
+
 
 ## ─── THE TESTS ────────────────────────────────────────────────────────
 
 def test_return_all_posts(client):
-  
+
     response = client.get("/")
-    
+
     assert response.status_code == 200
     assert isinstance(response.json(), List)
 
 def test_create_profile(client,test_user_credentials):
     """Test creating a brand new profile"""
-    
+
     response = client.post("/user/register", json=test_user_credentials[0])
-    
+
     assert response.status_code == 200
 
 
@@ -135,7 +135,7 @@ def test_login_for_access_token(client, test_user_credentials):
 
     assert json_data.get('message') == "Login successful"
     assert json_data.get('email') == user_info["username"]
-    
+
 def test_logout(client, generate_token):
     client.cookies.clear()
     client.cookies.set("access_token", generate_token)
@@ -213,7 +213,7 @@ def test_create_profile_blank_field(client):
 
 
 def test_create_profile_email_already_exist(client, test_user_credentials):
-    
+
     client.post("/user/register", json=test_user_credentials[0])
 
     response = client.post("/user/register",json=test_user_credentials[0])
@@ -234,7 +234,7 @@ def test_create_post_no_authenticated(client):
 def test_create_authenticated_post(client,generate_token):
     client.cookies.clear()
     client.cookies.set("access_token", generate_token)
-    
+
 
     post = {
         "title":"Stark Industry",
@@ -266,17 +266,17 @@ def test_create_post_with_blank_field(client, generate_token):
     response = client.post("/post/create-post", json=post_without_descritpion)
 
     assert response.status_code == 422
-   
-    
-def test_get_user_post(client, generate_token):    
+
+
+def test_get_user_post(client, generate_token):
     client.cookies.set("access_token", generate_token)
     post = {
         "title":"Stark Industry",
         "description":"Come work for Starks Industries.",
     }
-    
+
     repsonse_post = client.post("/post/create-post", json=post)
-    
+
     user_id = repsonse_post.json()['user_id']
     response = client.get(f"post/get-post/{user_id}")
 
@@ -444,7 +444,7 @@ def test_delete_another_user_post(client, generate_token, generate_second_token 
 
     response_post = client.post("/post/create-post", json=post)
 
-    
+
     post_id = response_post.json().get('id')
 
     client.cookies.set("access_token", generate_second_token)

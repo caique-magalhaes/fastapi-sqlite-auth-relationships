@@ -57,7 +57,7 @@ def get_user(response:Response,form_data: Annotated[OAuth2PasswordRequestForm, D
     )
 
 
-    return {"message": "Login successful","email": authenticated_user.email}
+    return {"message": "Login successful","email": authenticated_user.email,"name":authenticated_user.name,"id":authenticated_user.id}
 
 @router.post('/logout')
 def logout(response:Response):
