@@ -28,8 +28,6 @@ async def create_new_post(post:CreatePost, db:Session = Depends(dep_db), current
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error))
 
-
-
 @router.get('/get-post/{user_id}', response_model=List[Post])
 def user_post(user_id:int, db:Session = Depends(dep_db)):
 

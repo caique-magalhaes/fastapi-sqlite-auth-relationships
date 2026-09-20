@@ -3,8 +3,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Annotated
 from app.core.db  import dep_db
-from app.core.authenticated import create_access_token
-from app.crud import user_create, login
+from app.core.authenticated import create_access_token, get_current_user
+from app.crud import user_create, login, user_me
 from app.profile import UserLogin, UserCreate, Profile
 from datetime import timedelta
 
@@ -34,7 +34,7 @@ def create_profile(user:UserCreate,db:Session = Depends(dep_db)):
 
 
 @router.post('/login/token')
-def get_user(response:Response,form_data: Annotated[OAuth2PasswordRequestForm, Depends()],db:Session = Depends(dep_db)):
+def user_login(response:Response,form_data: Annotated[OAuth2PasswordRequestForm, Depends()],db:Session = Depends(dep_db)):
     user = UserLogin(email=form_data.username, password = form_data.password)
 
     authenticated_user = login(user=user, db=db)
@@ -61,7 +61,15 @@ def get_user(response:Response,form_data: Annotated[OAuth2PasswordRequestForm, D
 
 @router.post('/logout')
 def logout(response:Response):
-    response.delete_cookie(key="access_token", path="/", httponly=True)
+    response.delete_cookie(key="access_token", path="/", httponly=True,samesite='lax', secure=False)
 
     return{"message":"Successfully logged out!!"}
+
+@router.get('/me')
+def get_user(db:Session = Depends(dep_db), current_user: str = Depends(get_current_user)):
+    user = user_me(email=current_user, db=db)
+    if user is None:
+        raise HTTPException(status_code=401, detail="You need to be authenticated.")
+    
+    return {"id":user.id,"email": user.email,"name":user.name}
 

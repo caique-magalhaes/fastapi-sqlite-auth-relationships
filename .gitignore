@@ -1,3 +1,9 @@
+#database
+*.db
+*.sqlite
+*.sqlite3
+store-data.db
+
 #python chaching
 __pycache__/
 *.py[cod]
@@ -10,6 +16,11 @@ venv/
 .env/
 env/
 .env
+.env.local
+.env.*.local
+pycache/
+*.py[cod]
+*$py.class
 
 #IDE files
 .vscode/

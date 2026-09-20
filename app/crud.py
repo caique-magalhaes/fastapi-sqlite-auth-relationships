@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from app.profile import Profile, UserLogin, UserCreate, CreatePost
+from app.profile import UserLogin, UserCreate, CreatePost
 from app.models import User, Post
 from app.core.authenticated import get_hash, check_password
 
@@ -36,6 +36,9 @@ def user_create(user:UserCreate, db:Session):
 
         return None
 
+def user_me(email:str, db:Session):
+    user = db.query(User).filter(User.email == email).first()
+    return user
 
 def login(db:Session, user:UserLogin):
     get_user = db.query(User).filter(User.email == user.email).first()

@@ -1,18 +1,13 @@
+from dotenv import dotenv_values
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.engine import Engine
 
+configure_env = dotenv_values(".env")
 
-url = "sqlite:///./store-data.db"
+DATABASE_URL = configure_env.get("DATABASE_URL")
 
-engine = create_engine(url)
-
-
-@event.listens_for(Engine, "connect")
-def set_slite_pragma(dbapi_connection, connection_record):
-    cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.close()
+engine = create_engine(DATABASE_URL)
 
 SessionLocal = sessionmaker(autoflush=False, autocommit=False,bind=engine)
 
