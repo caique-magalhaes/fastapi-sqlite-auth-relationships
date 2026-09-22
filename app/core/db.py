@@ -5,7 +5,7 @@ from sqlalchemy.engine import Engine
 
 configure_env = dotenv_values(".env")
 
-DATABASE_URL = configure_env.get("DATABASE_URL")
+DATABASE_URL = configure_env.get("DATABASE_URL","sqlite://")
 
 engine = create_engine(DATABASE_URL)
 
