@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException,Response
 from typing import List
 from app.profile import Post, CreatePost
 from sqlalchemy.orm import Session
 from app.core.authenticated import get_current_user
-from app.crud import get_user_post, change_post, create_post, delete_post
+from app.crud import get_user_post, change_post, create_post, delete_post, give_or_remove_like
 from app.core.db  import dep_db
 from app.models import User
 
@@ -47,26 +47,33 @@ def alter_post(post_id:int, new_post:CreatePost ,db:Session = Depends(dep_db),cu
 
     update_post = change_post(post_id=post_id, new_post=new_post,email=current_user, db=db)
 
+    if update_post == "forbidden":
+            raise HTTPException(status_code=403,detail="You are not authorized to update this post", headers={"WWW-Authenticate": "Bearer"})
     if(update_post is None):
         raise HTTPException(status_code=404, detail="Post not Found")
 
-    if update_post == "forbidden":
-        raise HTTPException(status_code=403,detail="You are not authorized to update this post", headers={"WWW-Authenticate": "Bearer"})
-
     return update_post
 
+@router.post('/post-like/{post_id}')
+def like(post_id:int, db:Session = Depends(dep_db), current_user: str = Depends(get_current_user)):
+    response_like = give_or_remove_like(db=db, email=current_user, post_id=post_id)
+    if response_like == 'forbidden':
+        raise HTTPException(status_code=403, detail="You must be logged on to like this post")
+    if response_like == 'not found':
+        raise HTTPException(status_code=404, detail="Post Not Found")
 
-@router.delete('/post-delete/{post_id}')
+    return response_like
+
+@router.delete('/post-delete/{post_id}', status_code=204)
 def delete(post_id:int, db:Session = Depends(dep_db), current_user: str = Depends(get_current_user)):
 
     post = delete_post(db=db, post_id=post_id, email=current_user)
 
-    if(post is None):
+    if post == "forbidden":
+            raise HTTPException(status_code=403,detail="You are not authorized to delete this post", headers={"WWW-Authenticate": "Bearer"})
+
+    if post is None:
         raise HTTPException(status_code=404, detail="Post not Found")
-
-    if(post == "forbidden"):
-        raise HTTPException(status_code=403,detail="You are not authorized to delete this post", headers={"WWW-Authenticate": "Bearer"})
-
-    return {"successful":"Post has been Deleted", "post":post}
+    return Response(status_code=204)
 
 

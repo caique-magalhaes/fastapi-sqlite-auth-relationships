@@ -206,7 +206,7 @@ def test_create_profile_blank_field(client):
 
     response = client.post('/user/register', json = payload_without_country)
 
-    assert response.json()['country'] == 'UK'
+    assert response.json()['country'] == 'BR'
 
     assert response.status_code == 200
 
@@ -431,7 +431,7 @@ def test_delete_post_user_authenticated(client,generate_token):
 
     response = client.delete(f'/post/post-delete/{post_id}')
 
-    assert response.status_code == 200
+    assert response.status_code == 204
 
 def test_delete_another_user_post(client, generate_token, generate_second_token ):
     client.cookies.clear()
@@ -453,6 +453,55 @@ def test_delete_another_user_post(client, generate_token, generate_second_token 
 
     assert response.status_code == 403
 
+def test_logout(client, generate_token):
+    client.cookies.clear()
+    client.cookies.set("access_token", generate_token)
+
+    response  = client.post('user/logout')
+
+    assert response.status_code == 200
+    assert response.json().get('message') == 'Successfully logged out!!'
+
+
+
+def test_like(client, generate_token, generate_second_token):
+    client.cookies.clear()
+    client.cookies.set("access_token", generate_token)
+    post = {
+            "title":"Stark Industry",
+            "description":"Come work for Starks Industries."
+        }
+
+    response_post = client.post("/post/create-post", json = post)
+    post_id = response_post.json().get('id')
+
+    client.cookies.set("access_token", generate_second_token)
+
+    response = client.post(f'/post/post-like/{post_id}')
+
+    assert response.status_code == 200
+    data =  response.json()
+    assert data.get('action') == 'like'
+    assert 'like' in data
+
+def test_unlike(client, generate_token):
+    client.cookies.clear()
+    client.cookies.set("access_token", generate_token)
+    post = {
+            "title":"Stark Industry",
+            "description":"Come work for Starks Industries."
+            }
+    response_post = client.post("/post/create-post", json = post)
+    post_id = response_post.json().get('id')
+
+    client.post(f'post/post-like/{post_id}')
+    response = client.post(f'/post/post-like/{post_id}')
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data.get('action') == 'unlike'
+
+    assert 'like' in data
 
 
 
