@@ -457,10 +457,11 @@ def test_logout(client, generate_token):
     client.cookies.clear()
     client.cookies.set("access_token", generate_token)
 
-    response  = client.post('user/logout')
+    response  = client.post('/user/logout')
 
     assert response.status_code == 200
     assert response.json().get('message') == 'Successfully logged out!!'
+    assert "access_token" not in response.cookies
 
 
 
@@ -502,6 +503,31 @@ def test_unlike(client, generate_token):
     assert data.get('action') == 'unlike'
 
     assert 'like' in data
+
+def test_like_user_no_logged(client, generate_token):
+    client.cookies.clear()
+    client.cookies.set("access_token", generate_token)
+    post = {
+            "title":"Stark Industry",
+            "description":"Come work for Starks Industries."
+            }
+
+    response_post = client.post("/post/create-post", json=post)
+    post_id = response_post.json().get('id')
+
+    client.cookies.clear()
+
+    response = client.post(f'/post/post-like/{post_id}')
+
+    assert response.status_code == 401
+
+def test_like_post_no_exist(client, generate_token):
+    client.cookies.clear()
+    client.cookies.set("access_token", generate_token)
+
+    response = client.post(f'/post/post-like/{9999}')
+
+    assert response.status_code == 404
 
 
 

@@ -58,7 +58,7 @@ def alter_post(post_id:int, new_post:CreatePost ,db:Session = Depends(dep_db),cu
 def like(post_id:int, db:Session = Depends(dep_db), current_user: str = Depends(get_current_user)):
     response_like = give_or_remove_like(db=db, email=current_user, post_id=post_id)
     if response_like == 'forbidden':
-        raise HTTPException(status_code=403, detail="You must be logged on to like this post")
+        raise HTTPException(status_code=401, detail="You must be logged on to like this post")
     if response_like == 'not found':
         raise HTTPException(status_code=404, detail="Post Not Found")
 

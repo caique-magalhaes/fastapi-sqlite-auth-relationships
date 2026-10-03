@@ -36,7 +36,6 @@ def create_access_token(data:dict, expires_delta:timedelta | None = None):
     expire = datetime.now(timezone.utc) + timedelta(minutes=15)
 
   to_encode.update({"exp":expire})
-  
   encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
   return encoded_jwt
@@ -53,7 +52,6 @@ async def get_current_user(access_token: str | None = Cookie(None, alias="access
 
   if not access_token:
       raise credentials_exceptions
-  
   try:
 
     token = access_token.replace("Bearer", "").strip() if access_token.startswith("Bearer") else access_token
@@ -67,4 +65,3 @@ async def get_current_user(access_token: str | None = Cookie(None, alias="access
     return email
   except InvalidTokenError:
       raise credentials_exceptions
-  
