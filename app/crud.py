@@ -19,7 +19,7 @@ def get_user_post(user_id:int, db:Session):
 
 def user_create(user:UserCreate, db:Session):
     hash_password = get_hash(user.password)
-    table__user = User(name=user.name,country=user.country,city=user.city,email=user.email,password=hash_password)
+    table__user = User(name=user.name,country=user.country,email=user.email,password=hash_password)
 
     try:
 
@@ -76,7 +76,7 @@ def create_post(post:CreatePost, db:Session, user_id:int):
         db.commit()
         db.refresh(created_post)
         return created_post
-    except IntegrityError:
+    except IntegrityError :
         db.rollback()
         return None
 
@@ -101,7 +101,7 @@ def give_or_remove_like(db:Session, post_id:int, email:str):
     user = db.query(User).filter(User.email == email).first()
     post = db.query(Post).filter(Post.id == post_id).first()
     if user is None:
-        return 'forbidden'
+        return 'unauthorized'
 
     if post is None:
         return 'not found'
@@ -120,3 +120,13 @@ def give_or_remove_like(db:Session, post_id:int, email:str):
     except IntegrityError:
         db.rollback()
         return None
+
+def get_like(db:Session, email:str):
+    user = db.query(User).filter(User.email == email).first()
+
+    if user is None:
+        return 'unauthorized'
+
+    likes = db.query(Like).filter(Like.id_user == user.id).all()
+
+    return likes

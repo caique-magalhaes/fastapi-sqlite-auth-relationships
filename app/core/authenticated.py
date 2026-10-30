@@ -12,7 +12,7 @@ SECRET_KEY = configure_env.get('SECRET_KEY','abcde_super_secret_test_key_12345')
 ALGORITHM = "HS256"
 
 if not SECRET_KEY:
-    raise RuntimeError("SECRET_KDependsEY missing from environment configuration!")
+    raise RuntimeError("SECRET_KEY Depends missing from environment configuration!")
 
 password_hash = PasswordHash.recommended()
 

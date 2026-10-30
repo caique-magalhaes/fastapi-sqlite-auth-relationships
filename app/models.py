@@ -1,5 +1,6 @@
 from sqlalchemy import String, Integer, ForeignKey
 from sqlalchemy.orm import mapped_column, relationship, validates
+from sqlalchemy.ext.hybrid import hybrid_property
 from app.core.db import Base
 
 class User(Base):
@@ -8,11 +9,14 @@ class User(Base):
     name = mapped_column(String(20))
     email = mapped_column(String(50), unique=True, index=True)
     country = mapped_column(String(20), default='UK')
-    city = mapped_column(String(20))
     password = mapped_column(String(128))
 
     posts = relationship("Post", back_populates="user",cascade="all, delete-orphan") # When you delete the User record, SQLAlchemy automatically finds every single row in the posts table where the user_id matches that user, and issues a delete command for them too.
     likes = relationship("Like", back_populates="user", cascade="all, delete-orphan")
+
+    @hybrid_property
+    def like_post_ids(self):
+        return [like.id_post for like in getattr(self, 'likes', [])]
 
     @validates('email','name','city','password','country')
     def empty_string_modifier(self, key, value):
@@ -20,7 +24,7 @@ class User(Base):
         str_val = str(value).strip() if value is not None else ""
 
         if key == 'country' and not str_val:
-            return 'BR'
+            return 'Brazil'
         if not value or not str_val:
             raise ValueError(f"The field {key} cannot be blank or contain only whitespace.")
         return str_val
@@ -36,8 +40,11 @@ class Post(Base):
     user = relationship("User",back_populates="posts")
     likes = relationship("Like", back_populates="post", cascade="all, delete-orphan")
 
+    @hybrid_property
+    def like_count(self):
+        return len((self.likes)) if self.likes else 0
+
     @validates('title','description')
-    
     def empty_string_modifier(self, key, value):
         str_val = str(value).strip() if value is not None else ""
         if not value or not str_val:

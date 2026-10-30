@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException,Response
 from typing import List
-from app.profile import Post, CreatePost
+from app.profile import Post, CreatePost, LikesPost
 from sqlalchemy.orm import Session
 from app.core.authenticated import get_current_user
-from app.crud import get_user_post, change_post, create_post, delete_post, give_or_remove_like
+from app.crud import get_user_post, change_post, create_post, delete_post, give_or_remove_like, get_like
 from app.core.db  import dep_db
 from app.models import User
 
@@ -63,6 +63,14 @@ def like(post_id:int, db:Session = Depends(dep_db), current_user: str = Depends(
         raise HTTPException(status_code=404, detail="Post Not Found")
 
     return response_like
+
+@router.post('/get-like/', response_model=List[LikesPost])
+def get_users_like(db:Session = Depends(dep_db), current_user: str = Depends(get_current_user)):
+    result = get_like(db=db, email=current_user)
+    if result == 'unauthorized':
+        raise HTTPException(status_code=401, detail="User not found or invalid credentials")
+
+    return result
 
 @router.delete('/post-delete/{post_id}', status_code=204)
 def delete(post_id:int, db:Session = Depends(dep_db), current_user: str = Depends(get_current_user)):

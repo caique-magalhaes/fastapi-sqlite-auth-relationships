@@ -53,14 +53,12 @@ def test_user_credentials():
     standard_user = [{
         "name": "Anthony",
         "country": "Brazil",
-        "city": "Sao Paulo",
         "email":"anthony@stark.com",
         "password":"Abc1234"
     },
     {
         "name": "Victor Von Doom",
-        "country": "Latveria",
-        "city": "Doomstadt",
+        "country": "United Kingdom",
         "email":"victor@stark.com",
         "password":"Abc1234"
     }
@@ -150,8 +148,7 @@ def test_logout(client, generate_token):
 def test_create_profile_blank_field(client):
     payload_without_name = {
         "name":"",
-        "country":"UK",
-        "city":"London",
+        "country":"United Kingdom",
         "email":"george@test.com",
         "password":"Abc1234"
     }
@@ -160,22 +157,9 @@ def test_create_profile_blank_field(client):
 
     assert response.status_code == 422
 
-    payload_without_city = {
-        "name":"George",
-        "country":"UK",
-        "city":"",
-        "email":"george@test.com",
-        "password":"Abc1234"
-    }
-
-    response = client.post("/user/register", json=payload_without_city)
-
-    assert response.status_code == 422
-
     payload_without_email = {
         "name":"George",
-        "country":"UK",
-        "city":"London",
+        "country":"United Kingdom",
         "email":"",
         "password":"Abc1234"
     }
@@ -186,8 +170,7 @@ def test_create_profile_blank_field(client):
 
     payload_without_password = {
         "name":"George",
-        "country":"UK",
-        "city":"London",
+        "country":"United Kingdom",
         "email":"george@test.com",
         "password":""
     }
@@ -199,14 +182,13 @@ def test_create_profile_blank_field(client):
     payload_without_country = {
         "name":"George",
         "country":"",
-        "city":"London",
         "email":"george@test.com",
         "password":"Abc1234"
     }
 
     response = client.post('/user/register', json = payload_without_country)
 
-    assert response.json()['country'] == 'BR'
+    assert response.json()['country'] == 'Brazil'
 
     assert response.status_code == 200
 

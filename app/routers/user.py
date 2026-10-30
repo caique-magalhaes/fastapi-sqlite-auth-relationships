@@ -5,7 +5,7 @@ from typing import Annotated
 from app.core.db  import dep_db
 from app.core.authenticated import create_access_token, get_current_user
 from app.crud import user_create, login, user_me
-from app.profile import UserLogin, UserCreate, Profile
+from app.profile import UserLogin, UserCreate, Profile, UserMe
 from datetime import timedelta
 
 
@@ -18,14 +18,12 @@ router = APIRouter(
 def create_profile(user:UserCreate,db:Session = Depends(dep_db)):
 
     try:
-        new_user = user_create(user=user,db=db) 
+        new_user = user_create(user=user,db=db)
 
         if (new_user is None):
 
             raise HTTPException(status_code=400, detail="An account with this email address already exists.")
-        
         return new_user
-    
     except ValueError as error:
         raise HTTPException(
             status_code=422,
@@ -65,11 +63,10 @@ def logout(response:Response):
 
     return{"message":"Successfully logged out!!"}
 
-@router.get('/me')
+@router.get('/me', response_model=UserMe)
 def get_user(db:Session = Depends(dep_db), current_user: str = Depends(get_current_user)):
     user = user_me(email=current_user, db=db)
     if user is None:
         raise HTTPException(status_code=401, detail="You need to be authenticated.")
-    
-    return {"id":user.id,"email": user.email,"name":user.name}
+    return user
 
