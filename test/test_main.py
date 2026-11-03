@@ -113,6 +113,16 @@ def test_create_profile(client,test_user_credentials):
 
     assert response.status_code == 200
 
+def test_create_profile_already_exist(client,test_user_credentials):
+    """Test creating a brand new profile"""
+
+    response = client.post("/user/register", json=test_user_credentials[0])
+    response = client.post("/user/register", json=test_user_credentials[0])
+
+    assert response.status_code == 400
+    assert response.json()['detail'] == 'An account with this email address already exists.'
+
+
 
 def test_login_for_access_token(client, test_user_credentials):
     """Check if it is returning the token in the response."""
