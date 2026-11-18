@@ -15,18 +15,6 @@ ALGORITHM = "HS256"
 SECRET_KEY_EMAIL = configure_env.get('SECRET_KEY_EMAIL','abcde_super_secret_test_key_12345')
 TESTING = configure_env.get('TESTING', 'true')
 
-conf = ConnectionConfig(
-   MAIL_USERNAME=configure_env.get('MAIL_USERNAME', ''),
-   MAIL_PASSWORD = configure_env.get('MAIL_PASSWORD', ''),
-   MAIL_FROM = configure_env.get('MAIL_USERNAME', 'noreply@example.com'),
-   MAIL_PORT=587,
-   MAIL_SERVER="smtp.gmail.com",
-   MAIL_STARTTLS=True,
-   MAIL_SSL_TLS=False,
-   USE_CREDENTIALS=True,
-   VALIDATE_CERTS=True
-)
-
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY Depends missing from environment configuration!")
 
@@ -99,6 +87,17 @@ async def send_email(email:str):
      print(f"Test Mode - Email not sent")
      return 'Test Mode'
 
+  conf = ConnectionConfig(
+   MAIL_USERNAME=configure_env.get('MAIL_USERNAME','noreply@example.com'),
+   MAIL_PASSWORD = configure_env.get('MAIL_PASSWORD', 'random_password'),
+   MAIL_FROM = configure_env.get('MAIL_USERNAME', 'noreply@example.com'),
+   MAIL_PORT=587,
+   MAIL_SERVER="smtp.gmail.com",
+   MAIL_STARTTLS=True,
+   MAIL_SSL_TLS=False,
+   USE_CREDENTIALS=True,
+   VALIDATE_CERTS=True
+)
 
   expire = datetime.now(timezone.utc) + timedelta(hours=24)
   
