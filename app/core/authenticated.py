@@ -13,11 +13,12 @@ configure_env = dotenv_values(".env")
 SECRET_KEY = configure_env.get('SECRET_KEY','abcde_super_secret_test_key_12345')
 ALGORITHM = "HS256"
 SECRET_KEY_EMAIL = configure_env.get('SECRET_KEY_EMAIL','abcde_super_secret_test_key_12345')
+TESTING = configure_env.get('TESTING', 'true')
 
 conf = ConnectionConfig(
-   MAIL_USERNAME=configure_env.get('MAIL_USERNAME', 'teste.user@exemplo.com'),
-   MAIL_PASSWORD = configure_env.get('MAIL_PASSWORD','test_key_12345'),
-   MAIL_FROM = configure_env.get('MAIL_USERNAME'),
+   MAIL_USERNAME=configure_env.get('MAIL_USERNAME', ''),
+   MAIL_PASSWORD = configure_env.get('MAIL_PASSWORD', ''),
+   MAIL_FROM = configure_env.get('MAIL_USERNAME', 'noreply@example.com'),
    MAIL_PORT=587,
    MAIL_SERVER="smtp.gmail.com",
    MAIL_STARTTLS=True,
@@ -92,7 +93,7 @@ async def send_email(email:str):
   if not re.match(pattern, email):
      return 'Invalid Format'
 
-  is_testing = configure_env.get("TESTING", "true").lower() == "true"
+  is_testing = TESTING.lower() == "true"
 
   if is_testing:
      print(f"Test Mode - Email not sent")
