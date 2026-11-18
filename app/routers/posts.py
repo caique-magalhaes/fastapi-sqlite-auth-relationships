@@ -20,7 +20,7 @@ async def create_new_post(post:CreatePost, db:Session = Depends(dep_db), current
         if(user is None):
             raise HTTPException(status_code=401,detail="Could not validate credentials", headers={"WWW-Authenticate": "Bearer"})
 
-        created_post = create_post(post=post,db=db,user_id=user.id)
+        created_post = create_post(post=post,db=db,user_id=user.id, user_name = user.username)
 
         if(created_post is None):
             raise HTTPException(status_code=422,detail="Could not create post. The provided user_id does not exist.")

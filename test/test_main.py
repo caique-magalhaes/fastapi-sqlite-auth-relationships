@@ -53,13 +53,22 @@ def test_user_credentials():
     standard_user = [{
         "name": "Anthony",
         "country": "Brazil",
+        "username":"anthony",
         "email":"anthony@stark.com",
         "password":"Abc1234"
     },
     {
         "name": "Victor Von Doom",
         "country": "United Kingdom",
+        "username":"victor",
         "email":"victor@stark.com",
+        "password":"Abc1234"
+    },
+    {
+        "name": "Carlos",
+        "country": "Brazil",
+        "username":"anthony",
+        "email":"carlos@stark.com",
         "password":"Abc1234"
     }
     ]
@@ -120,7 +129,16 @@ def test_create_profile_already_exist(client,test_user_credentials):
     response = client.post("/user/register", json=test_user_credentials[0])
 
     assert response.status_code == 400
-    assert response.json()['detail'] == 'An account with this email address already exists.'
+    assert response.json()['detail'] == 'Email já registrado no sistema'
+
+def test_create_username_already_exist(client,test_user_credentials):
+    """Test creating a brand new profile"""
+
+    response = client.post("/user/register", json=test_user_credentials[0])
+    response = client.post("/user/register", json=test_user_credentials[2])
+
+    assert response.status_code == 400
+    assert response.json()['detail'] == 'Nome de usuário já registrado no sistema'
 
 
 
@@ -158,6 +176,7 @@ def test_logout(client, generate_token):
 def test_create_profile_blank_field(client):
     payload_without_name = {
         "name":"",
+        "username":"george",
         "country":"United Kingdom",
         "email":"george@test.com",
         "password":"Abc1234"
@@ -167,8 +186,19 @@ def test_create_profile_blank_field(client):
 
     assert response.status_code == 422
 
+    payload_without_username = {
+            "name":"George",
+            "username":"",
+            "country":"United Kingdom",
+            "email":"george@test.com",
+            "password":"Abc1234"
+        }
+    response = client.post("/user/register", json=payload_without_username)
+    assert response.status_code == 422
+
     payload_without_email = {
         "name":"George",
+        "username":"george",
         "country":"United Kingdom",
         "email":"",
         "password":"Abc1234"
@@ -180,6 +210,7 @@ def test_create_profile_blank_field(client):
 
     payload_without_password = {
         "name":"George",
+        "username":"george",
         "country":"United Kingdom",
         "email":"george@test.com",
         "password":""
@@ -191,6 +222,7 @@ def test_create_profile_blank_field(client):
 
     payload_without_country = {
         "name":"George",
+        "username":"george",
         "country":"",
         "email":"george@test.com",
         "password":"Abc1234"

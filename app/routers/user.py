@@ -1,12 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException,Response
+from fastapi import APIRouter, Depends, HTTPException,Response, BackgroundTasks
+from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Annotated
 from app.core.db  import dep_db
-from app.core.authenticated import create_access_token, get_current_user
-from app.crud import user_create, login, user_me
+from app.core.authenticated import create_access_token, get_current_user, decode_token_email,send_email
+from app.crud import user_create, login, user_me, mark_verify_email
 from app.profile import UserLogin, UserCreate, Profile, UserMe
 from datetime import timedelta
+from jwt.exceptions import InvalidTokenError, ExpiredSignatureError
 
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -15,20 +17,61 @@ router = APIRouter(
     tags=["Users"]               )
 
 @router.post('/register', response_model=Profile)
-def create_profile(user:UserCreate,db:Session = Depends(dep_db)):
+async def create_profile(user:UserCreate,background_tasks:BackgroundTasks,db:Session = Depends(dep_db)):
 
     try:
-        new_user = user_create(user=user,db=db)
+        result = user_create(user=user,db=db)
 
-        if (new_user is None):
+        if isinstance(result, dict) and "message" in result:
+            raise HTTPException(status_code=400, detail=result["message"])
 
-            raise HTTPException(status_code=400, detail="An account with this email address already exists.")
-        return new_user
+        background_tasks.add_task(send_email, result.email)
+        return result
     except ValueError as error:
         raise HTTPException(
             status_code=422,
             detail=str(error)
         )
+
+@router.get('/verification', response_class=HTMLResponse)
+async def verify(token:str, db:Session = Depends(dep_db)):
+    try:
+        payload = await decode_token_email(token=token)
+
+        email = payload.get("email")
+        token_type = payload.get("type")
+
+        if not email or token_type != 'email_verification':
+            return HTMLResponse(
+                content='<h3>Link inválido ou propósito do token incorreto.</h3>',
+                status_code=400
+            )
+        result = mark_verify_email(email=email, db=db)
+
+        status_code = 200 if result.get("success") else 400
+
+        template = f'''
+                        <!DOCTYPE html>
+                            <html lang="eng">
+                                <head>
+                                <meta charset="UTF-8">
+                                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                </head>
+                                <body>
+                                <h3>{result["message"]}</h3>
+                                </body>
+                            </html>
+                    '''
+        return HTMLResponse(content=template, status_code=status_code)
+    except ExpiredSignatureError:
+        error_template = '<h3>O link de verificação expirou. Por favor, solicite um novo.</h3>'
+        return HTMLResponse(content=error_template, status_code=400)
+
+    except InvalidTokenError:
+        error_template = '<h3>Token inválido. Verifique o link enviado.</h3>'
+        return HTMLResponse(content=error_template, status_code=400)
+
+
 
 
 @router.post('/login/token')

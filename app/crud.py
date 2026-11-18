@@ -18,8 +18,15 @@ def get_user_post(user_id:int, db:Session):
     return posts
 
 def user_create(user:UserCreate, db:Session):
+    email = db.query(User).filter(User.email == user.email).first()
+    username = db.query(User).filter(User.username == user.username).first()
+
+    if email:
+        return {"message": "Email já registrado no sistema"}
+    if username:
+        return {"message": "Nome de usuário já registrado no sistema"}
     hash_password = get_hash(user.password)
-    table__user = User(name=user.name,country=user.country,email=user.email,password=hash_password)
+    table__user = User(name=user.name.capitalize(),country=user.country,email=user.email,password=hash_password, username=user.username.lower())
 
     try:
 
@@ -31,8 +38,24 @@ def user_create(user:UserCreate, db:Session):
 
     except IntegrityError:
         db.rollback()
+        return {"message":"Database integrity error."}
 
-        return None
+def mark_verify_email(email:str, db:Session):
+    user = db.query(User).filter(User.email == email).first()
+
+    if not user:
+        return{"success": False, "message":"Usuário não encontrado."}
+    if user.email_confirmed:
+        return{"success": False, "message":"Usuário já verificado."}
+    user.email_confirmed = True
+
+    try:
+        db.commit()
+        db.refresh(user)
+        return {"success": True, "message":"Email Verificado com Sucesso!"}
+    except IntegrityError:
+        db.rollback()
+        return {"success": False, "message": "Erro de integridade no banco."}
 
 def user_me(email:str, db:Session):
     user = db.query(User).filter(User.email == email).first()
@@ -69,8 +92,8 @@ def change_post(post_id:int ,new_post:CreatePost, email:str,db:Session):
 
         return None
 
-def create_post(post:CreatePost, db:Session, user_id:int):
-    created_post = Post(title = post.title, description = post.description, user_id = user_id)
+def create_post(post:CreatePost, db:Session, user_id:int, user_name:str):
+    created_post = Post(title = post.title, description = post.description, user_id = user_id, user_name = user_name)
     try:
         db.add(created_post)
         db.commit()

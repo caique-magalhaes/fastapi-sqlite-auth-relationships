@@ -1,5 +1,6 @@
-from pydantic import BaseModel, computed_field
+from pydantic import BaseModel
 from typing import List
+from datetime import datetime
 
 
 class CreatePost(BaseModel):
@@ -17,6 +18,8 @@ class LikesPost(BaseModel):
 class Post(CreatePost):
     id:int
     user_id:int
+    user_name:str
+    created_at: datetime
     like_count:int = 0
 
     class ConfigDict:
@@ -33,12 +36,15 @@ class UserLogin(BaseModel):
 class UserMe(BaseModel):
     id:int
     email:str
+    username:str
     name:str
     like_post_ids:list[int]
+    email_confirmed:bool
 
 class UserCreate(UserLogin):
     name:str
     country:str
+    username:str
 
 class Profile(BaseModel):
     id:int
