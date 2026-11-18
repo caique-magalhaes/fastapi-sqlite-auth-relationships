@@ -15,8 +15,8 @@ ALGORITHM = "HS256"
 SECRET_KEY_EMAIL = configure_env.get('SECRET_KEY_EMAIL','abcde_super_secret_test_key_12345')
 
 conf = ConnectionConfig(
-   MAIL_USERNAME=configure_env.get('MAIL_USERNAME'),
-   MAIL_PASSWORD = configure_env.get('MAIL_PASSWORD'),
+   MAIL_USERNAME=configure_env.get('MAIL_USERNAME', 'teste.user@exemplo.com'),
+   MAIL_PASSWORD = configure_env.get('MAIL_PASSWORD','test_key_12345'),
    MAIL_FROM = configure_env.get('MAIL_USERNAME'),
    MAIL_PORT=587,
    MAIL_SERVER="smtp.gmail.com",
