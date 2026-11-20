@@ -1,10 +1,9 @@
-from dotenv import dotenv_values
+import os 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-configure_env = dotenv_values(".env")
 
-DATABASE_URL = configure_env.get("DATABASE_URL","sqlite://")
+DATABASE_URL = os.getenv("DATABASE_URL","sqlite://")
 
 engine = create_engine(DATABASE_URL)
 

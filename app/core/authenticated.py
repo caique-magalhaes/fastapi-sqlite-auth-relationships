@@ -1,3 +1,4 @@
+import os
 from pwdlib import PasswordHash
 from fastapi import HTTPException, Cookie
 from dotenv import dotenv_values
@@ -8,12 +9,10 @@ from fastapi_mail import FastMail, ConnectionConfig, MessageSchema
 import re
 
 
-configure_env = dotenv_values(".env")
-
-SECRET_KEY = configure_env.get('SECRET_KEY','abcde_super_secret_test_key_12345')
+SECRET_KEY = os.getenv('SECRET_KEY','abcde_super_secret_test_key_12345')
 ALGORITHM = "HS256"
-SECRET_KEY_EMAIL = configure_env.get('SECRET_KEY_EMAIL','abcde_super_secret_test_key_12345')
-TESTING = configure_env.get('TESTING', 'true')
+SECRET_KEY_EMAIL = os.getenv('SECRET_KEY_EMAIL','abcde_super_secret_test_key_12345')
+TESTING = os.getenv('TESTING', 'true')
 
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY Depends missing from environment configuration!")
@@ -88,9 +87,9 @@ async def send_email(email:str):
      return 'Test Mode'
 
   conf = ConnectionConfig(
-   MAIL_USERNAME=configure_env.get('MAIL_USERNAME','noreply@example.com'),
-   MAIL_PASSWORD = configure_env.get('MAIL_PASSWORD', 'random_password'),
-   MAIL_FROM = configure_env.get('MAIL_USERNAME', 'noreply@example.com'),
+   MAIL_USERNAME=os.getenv('MAIL_USERNAME','noreply@example.com'),
+   MAIL_PASSWORD = os.getenv('MAIL_PASSWORD', 'random_password'),
+   MAIL_FROM = os.getenv('MAIL_USERNAME', 'noreply@example.com'),
    MAIL_PORT=587,
    MAIL_SERVER="smtp.gmail.com",
    MAIL_STARTTLS=True,
